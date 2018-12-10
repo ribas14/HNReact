@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 
-const PAGE_ITEMS = 1
+const PAGE_ITEMS = 10
 const URL_COMMENTS = `https://hacker-news.firebaseio.com/v0/item/`
 
 export default class Comments extends React.Component {
@@ -41,10 +41,10 @@ export default class Comments extends React.Component {
     };
   };
 
-  _breakChunks(data, allComments=0) {
+  _breakChunks(data, allComments=null) {
     if (data) {
       let arrays = []
-      let size = allComments != 0 ? allComments : PAGE_ITEMS
+      let size = allComments ? allComments : PAGE_ITEMS
       while (data.length > 0) {
         arrays.push(data.splice(0, size))
       }
@@ -52,10 +52,11 @@ export default class Comments extends React.Component {
       }
   }
 
-  async _handleKids(kids, allComments=false) {
+  async _handleKids(kids, allComments=false, topComment=false) {
     if (kids) {
       const that = this
-      const listComments = [], promises = []
+      let listComments = []
+      const promises = []
       for await (var kid of kids) {
         promises.push(axios.get(URL_COMMENTS + kid + `.json`))
       }
@@ -64,9 +65,16 @@ export default class Comments extends React.Component {
           if (resp.data.kids) {
             resp.data.kids = that._breakChunks(resp.data.kids, allComments)
             resp.data.kidsCount = resp.data.kids.length
-            resp.data.listComments = await this._handleKids(resp.data.kids[0])
+            resp.data.listComments = await this._handleKids(resp.data.kids[0], allComments)
           }
-          listComments.push(resp.data)
+          if (topComment) {
+            listComments = [...this.state.listComments]
+            listComments.push(resp.data)
+            this.setState({
+              loading: false, listComments: listComments
+            })
+          } 
+          else listComments.push(resp.data)
         }
       })
       return listComments
@@ -77,7 +85,7 @@ export default class Comments extends React.Component {
     this.setState({ loading: true })
     if (this.props.navigation.getParam('kids', null)) {
       kids = this._breakChunks([...this.props.navigation.getParam('kids', null)])
-      let listComments = await this._handleKids(kids[0])
+      let listComments = await this._handleKids(kids[0], 2, true)
       this.setState({
         listComments: [...listComments], loading: false
       })

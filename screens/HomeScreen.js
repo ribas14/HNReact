@@ -10,6 +10,7 @@ import {
 } from 'react-native-popup-menu';
 
 import {
+  RefreshControl,
   ActivityIndicator,
   Platform,
   Button,
@@ -35,6 +36,7 @@ export default class HomeScreen extends React.Component {
       listFilter: [],
       pageCount: 0,
       arrays: [],
+      loadingMoreStories: false,
       queryStories: 'best',
     }, 
     this._breakChunks = this._breakChunks.bind(this)
@@ -96,6 +98,7 @@ export default class HomeScreen extends React.Component {
   }
 
   async _getStories(list) {
+      this.setState({loadingMoreStories: !this.state.loadingMoreStories})
       let l = this.state.listNew || []
       let count = 0
       for await (var item of list) {
@@ -105,6 +108,7 @@ export default class HomeScreen extends React.Component {
           l.push(res.data)
           if (list.length === count) {
             this.setState({
+              loadingMoreStories: !this.state.loadingMoreStories,
               listNew: l, 
               loading: false, 
               listFilter: l,
@@ -145,7 +149,7 @@ export default class HomeScreen extends React.Component {
 
   async _getInitalStories() {
     await this.props.navigation.setParams({ title: this.state.queryStories })
-    this.setState({ loading: true, listNew: []})
+    this.setState({ loading: true, listNew: [], listFilter: []})
     axios.get(URL_STORIES + this.state.queryStories + `stories.json`)
     .then(res => {
       let data = res.data;
@@ -163,7 +167,7 @@ export default class HomeScreen extends React.Component {
   }
 
   render() {
-    const { listFilter, loading, pageCount, arrays } = this.state
+    const { listFilter, loading, pageCount, arrays, loadingMoreStories } = this.state
 
     return (
       <View style={styles.container}>
@@ -174,6 +178,12 @@ export default class HomeScreen extends React.Component {
         }
         { !loading &&
           <ScrollView 
+            refreshControl={
+              <RefreshControl
+                refreshing={this.state.loading}
+                onRefresh={this._onRefresh}
+              />
+            }
             style={styles.container} 
             contentContainerStyle={styles.contentContainer}
             onRefresh={this._onRefresh}>
@@ -196,7 +206,7 @@ export default class HomeScreen extends React.Component {
                         onPress={() => this._handleComments(item)} 
                         style={styles.helpLink} 
                         hitSlop={{top: 50, bottom: 50, left: 50, right: 50}}>
-                        <Text style={[styles.infoText, {fontWeight: 'bold', color: 'white'}]}> {item.kids ? item.kids.length : 'no'} comments</Text>
+                        <Text style={[styles.infoText, {fontWeight: 'bold', color: 'white'}]}> {item.descendants ? item.descendants : 'no'} comments</Text>
                       </TouchableOpacity>                  
                       <Text style={styles.infoText}>{item.score} points</Text>
                       <Text style={styles.infoText}>by {item.by}</Text>
@@ -208,14 +218,20 @@ export default class HomeScreen extends React.Component {
             )}
             </View>
             <View>
-              <Button
+              {
+                loadingMoreStories && 
+                <ActivityIndicator size="large" color="#ff7043" />
+              }
+              {
+                !loadingMoreStories && 
+                <Button
                 color='#ff7043'
                 title= 'More'
-                onPress={() => this._getStories(arrays[pageCount])} />            
+                onPress={() => this._getStories(arrays[pageCount])} />  
+              }
               </View>
           </ScrollView>
         }
-
       </View>
     );
   }
