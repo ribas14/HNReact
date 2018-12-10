@@ -11,6 +11,9 @@ import {
   View,
 } from 'react-native';
 
+const PAGE_ITEMS = 2
+const URL_COMMENTS = `https://hacker-news.firebaseio.com/v0/item/`
+
 export default class Comments extends React.Component {
   constructor(props, context) {
     super(props, context)
@@ -18,7 +21,10 @@ export default class Comments extends React.Component {
       loading: false,
       listComments: []
     } 
-    this.handleKids = this.handleKids.bind(this)
+    this._handleKids = this._handleKids.bind(this)
+    this._breakChunks = this._breakChunks.bind(this)
+    this._handleMoreComments = this._handleMoreComments.bind(this)
+
   }
 
   static navigationOptions = ({ navigation }) => {
@@ -36,36 +42,63 @@ export default class Comments extends React.Component {
     };
   };
 
-  async handleKids(kids, noParent=false) {
+  async _handleKids(kids, allComments=false) {
+    const that = this
     if (kids) {
       const listComments = [], promises = []
       for await (var kid of kids) {
-        promises.push(axios.get(`https://hacker-news.firebaseio.com/v0/item/` + kid + `.json`))
+        promises.push(axios.get(URL_COMMENTS + kid + `.json`))
       }
       await Promise.all(promises).then(async (list) => {
         for await (var resp of list) {
-          if (resp.data.kids) {
-            resp.data.listComments = await this.handleKids(resp.data.kids, true)
+          if (resp.data.kids ) {
+            resp.data.kids = that._breakChunks(resp.data.kids, allComments)
+            resp.data.kidsCount = resp.data.kids.length
+            resp.data.listComments = await this._handleKids(resp.data.kids[0])
           }
           listComments.push(resp.data)
-          if (listComments.length === kids.length && !noParent) {
-            this.setState({
-              listComments: [...listComments], loading: false
-            })
-            return
-          }
         }
       })
       return listComments
     }
   }
 
-  componentDidMount() {
+  async _handleMoreComments(index) {
+    let oldList = this.state.listComments
+    oldList[index].listComments = []
+    for await (var kid of this.state.listComments[index].kids) {
+      let listComments = await this._handleKids(kid, true)
+      oldList[index].listComments.push(listComments)
+    }
+    console.log(oldList)
+  }
+
+  _breakChunks(data, allComments=false) {
+    if (data) {
+      let arrays = []
+      let size = allComments ? data.length - 1 : PAGE_ITEMS
+      while (data.length > 0)
+        arrays.push(data.splice(0, size))
+        this.setState({
+          arrays
+        })
+      return arrays
+      }
+  }
+
+  async componentDidMount() {
     this.setState({ loading: true })
-    this.handleKids(this.props.navigation.getParam('kids', null))
+    if (this.props.navigation.getParam('kids', null)) {
+      let kids = this._breakChunks(this.props.navigation.getParam('kids', null))
+      let listComments = await this._handleKids(kids[0])
+      this.setState({
+        listComments: [...listComments], loading: false
+      })
+    }
   }
 
   render() {
+    const _this = this
     const {loading, listComments} = this.state
     const { navigation } = this.props
     const by = navigation.getParam('by', 'error')
@@ -106,8 +139,12 @@ export default class Comments extends React.Component {
             </View>
             <View> 
             {
-              listComments.map((item) => (
-                <CommentCard key={ item.id } item={item} />
+              listComments.map((item, index) => (
+                <CommentCard 
+                  key={ item.id } 
+                  item={item} 
+                  index={index} 
+                  handleMore={ _this._handleMoreComments }/>
               )
             )}
             </View>

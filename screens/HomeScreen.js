@@ -60,10 +60,10 @@ export default class HomeScreen extends React.Component {
         </View>,
 
       headerRight: 
-      <View style={{paddingRight: 10}}>
+      <View style={{paddingRight: 20}}>
         <Menu>
             <MenuTrigger>
-              <Icon style={{color: '#fff'}} name="md-funnel"/>
+              <Icon style={{color: '#fff'}} name="md-more"/>
             </MenuTrigger>
             <MenuOptions style={{backgroundColor: '#222222'}}>
               <MenuOption style={{alignItems: 'center'}} onSelect={() => navigation.state.params.handleClick('new')}>
@@ -83,12 +83,15 @@ export default class HomeScreen extends React.Component {
   };
 
   _breakChunks(data) {
-    let arrays = [], size = PAGE_ITEMS
+    if (data) {
+      let arrays = [], size = PAGE_ITEMS
       while (data.length > 0)
         arrays.push(data.splice(0, size))
-      this.setState({
-        arrays
-      })
+        this.setState({
+          arrays
+        })
+      return arrays
+      }
   }
 
   _getStories(list) {
@@ -133,12 +136,13 @@ export default class HomeScreen extends React.Component {
   }
   
   async _getInitalStories() {
-    this.props.navigation.setParams({ title: this.state.queryStories })
+    await this.props.navigation.setParams({ title: this.state.queryStories })
     this.setState({ loading: true, listNew: []})
     axios.get(URL_STORIES + this.state.queryStories + `stories.json`)
     .then(res => {
       let data = res.data;
-      this._breakChunks(data);
+      const arrays = this._breakChunks(data);
+      this.setState({ arrays })
       this._getStories(this.state.arrays[0])
     })
     .catch(error => {
