@@ -31,7 +31,7 @@ export default class HomeScreen extends React.Component {
     super(props, context);
     this.state = {
       loading: false,
-      listNew: [],
+      listNew: null,
       listFilter: [],
       pageCount: 0,
       arrays: [],
@@ -40,6 +40,7 @@ export default class HomeScreen extends React.Component {
     this._breakChunks = this._breakChunks.bind(this)
     this._getInitalStories = this._getInitalStories.bind(this)
     this._handleMenuClick = this._handleMenuClick.bind(this)
+    this._onRefresh = this._onRefresh.bind(this)
   }
   
   static navigationOptions = ({ navigation }) => {
@@ -94,10 +95,10 @@ export default class HomeScreen extends React.Component {
       }
   }
 
-  _getStories(list) {
+  async _getStories(list) {
       let l = this.state.listNew || []
       let count = 0
-      list.forEach(item => {
+      for await (var item of list) {
         axios.get(URL_ITEM + item + `.json`)
         .then(res => { 
           count += 1
@@ -114,7 +115,7 @@ export default class HomeScreen extends React.Component {
         .catch(error => {
           console.warn(error)
         });
-      })
+      }
   }
 
   _handleComments(item) {
@@ -129,12 +130,19 @@ export default class HomeScreen extends React.Component {
     }
   }
 
- _handleMenuClick(queryStories) {
+  _handleMenuClick(queryStories) {
     this.setState({ queryStories: queryStories }, () => {
       this._getInitalStories()
     })
   }
   
+  async _onRefresh() {
+    this.setState({loading: true});
+    await this._getInitalStories().then(
+      this.setState({loading: false})
+    )
+  }
+
   async _getInitalStories() {
     await this.props.navigation.setParams({ title: this.state.queryStories })
     this.setState({ loading: true, listNew: []})
@@ -165,12 +173,18 @@ export default class HomeScreen extends React.Component {
           </View>
         }
         { !loading &&
-          <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+          <ScrollView 
+            style={styles.container} 
+            contentContainerStyle={styles.contentContainer}
+            onRefresh={this._onRefresh}>
             <View style={styles.welcomeContainer}> 
             {
               listFilter.map((item) => (
                 <View key={ item.id } style={styles.helpContainer}>
-                  <TouchableOpacity onPress={() => this._handleComments(item)} style={styles.helpLink}>
+                  <TouchableOpacity 
+                    onPress={() => this._handleComments(item)} 
+                    style={styles.helpLink}
+                    hitSlop={{top: 50, bottom: 50, left: 50, right: 50}}>
                     <TouchableOpacity 
                       onPress={() => this.props.navigation.navigate('WebLinks', {url: item.url})}
                       style={[styles.helpLink, {flexDirection: 'row'}]}>
@@ -178,7 +192,10 @@ export default class HomeScreen extends React.Component {
                       </Text>
                     </TouchableOpacity>
                     <View style={styles.infoContainer}>
-                      <TouchableOpacity onPress={() => this._handleComments(item)} style={styles.helpLink}>
+                      <TouchableOpacity 
+                        onPress={() => this._handleComments(item)} 
+                        style={styles.helpLink} 
+                        hitSlop={{top: 50, bottom: 50, left: 50, right: 50}}>
                         <Text style={[styles.infoText, {fontWeight: 'bold', color: 'white'}]}> {item.kids ? item.kids.length : 'no'} comments</Text>
                       </TouchableOpacity>                  
                       <Text style={styles.infoText}>{item.score} points</Text>
