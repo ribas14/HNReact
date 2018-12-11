@@ -17,6 +17,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  Image,
   TouchableOpacity,
   View,
 } from 'react-native';  
@@ -97,13 +98,30 @@ export default class HomeScreen extends React.Component {
       }
   }
 
+  async _getImage(res) {
+    const re = '<img[^>]+src="([^">]+)"'
+    let response = await fetch(res.data.url)
+    let data = await response.text()
+    let img = await data.match(re)
+    if (img && img[1].includes('http')) return img[1]
+  }
+
   async _getStories(list) {
       this.setState({loadingMoreStories: !this.state.loadingMoreStories})
       let l = this.state.listNew || []
       let count = 0
-      for await (var item of list) {
-        axios.get(URL_ITEM + item + `.json`)
-        .then(res => { 
+      for (var item of list) {
+        await axios.get(URL_ITEM + item + `.json`)
+        .then(async res => {
+          if (res.data.url) {
+            await this._getImage(res)
+            .then(img => {
+              res.data.img = img
+            })
+            .catch((error) => {
+              console.error(error);
+            });
+          }
           count += 1
           l.push(res.data)
           if (list.length === count) {
@@ -114,11 +132,16 @@ export default class HomeScreen extends React.Component {
               listFilter: l,
               pageCount: this.state.pageCount + 1
             })
+          } else if (l.length > 3){
+            this.setState({
+              loadingMoreStories: true,
+              listNew: l, 
+              loading: false, 
+              listFilter: l,
+            })
           }
         })
-        .catch(error => {
-          console.warn(error)
-        });
+
       }
   }
 
@@ -191,6 +214,13 @@ export default class HomeScreen extends React.Component {
             {
               listFilter.map((item) => (
                 <View key={ item.id } style={styles.helpContainer}>
+                  {
+                    item.img &&
+                    <Image
+                      style={{ width: '100%', height: 150 }}
+                      source={{uri:item.img}}
+                    />
+                  }
                   <TouchableOpacity 
                     onPress={() => this._handleComments(item)} 
                     style={styles.helpLink}
