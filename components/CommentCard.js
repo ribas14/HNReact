@@ -85,7 +85,7 @@ class CommentCard extends React.Component {
         { item.text &&
           <TouchableOpacity
             onPress={() => this.setState({pressedComment: !pressedComment})}
-            delayPressIn={100}>
+            delayPressIn={50}>
             <View style={[styles.helpContainer, { borderLeftColor:color }, more, { backgroundColor: pressedComment ? '#424242' : '#222222'} ]}>
               <View style={{flexDirection: "row", flex: 1}}>
                 <Text style={[styles.infoText, {fontSize: 11}]}>{item.by}</Text>

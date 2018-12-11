@@ -15,6 +15,8 @@ const PAGE_ITEMS = 10
 const URL_COMMENTS = `https://hacker-news.firebaseio.com/v0/item/`
 
 export default class Comments extends React.Component {
+  _isMounted = false;
+
   constructor(props, context) {
     super(props, context)
     this.state = {
@@ -70,9 +72,11 @@ export default class Comments extends React.Component {
           if (topComment) {
             listComments = [...this.state.listComments]
             listComments.push(resp.data)
-            this.setState({
-              loading: false, listComments: listComments
-            })
+            if (this._isMounted) {
+              this.setState({
+                loading: false, listComments: listComments
+              })
+            }
           } 
           else listComments.push(resp.data)
         }
@@ -80,15 +84,23 @@ export default class Comments extends React.Component {
       return listComments
     }
   }
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
 
   async componentDidMount() {
-    this.setState({ loading: true })
+    this._isMounted = true;
+    if (this._isMounted) {
+      this.setState({ loading: true })
+    }
     if (this.props.navigation.getParam('kids', null)) {
       kids = this._breakChunks([...this.props.navigation.getParam('kids', null)])
       let listComments = await this._handleKids(kids[0], 2, true)
-      this.setState({
-        listComments: [...listComments], loading: false
-      })
+      if (this._isMounted) {
+        this.setState({
+          listComments: [...listComments], loading: false
+        })
+      }
     }
   }
 

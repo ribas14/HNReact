@@ -1,5 +1,6 @@
 import React from 'react'
 import axios from 'axios'
+import fetch from 'react-native-fetch-polyfill'
 import moment from 'moment';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -28,7 +29,10 @@ const PAGE_ITEMS = 20
 const URL_ITEM = 'https://hacker-news.firebaseio.com/v0/item/'
 const URL_STORIES = `https://hacker-news.firebaseio.com/v0/`
 
+
 export default class HomeScreen extends React.Component {
+  _isMounted = false;
+
   constructor(props, context) {
     super(props, context);
     this.state = {
@@ -91,23 +95,35 @@ export default class HomeScreen extends React.Component {
       let arrays = [], size = PAGE_ITEMS
       while (data.length > 0)
         arrays.push(data.splice(0, size))
-        this.setState({
-          arrays
-        })
-      return arrays
+        if (this._isMounted) {
+          this.setState({
+            arrays
+          })
+        }
+        return arrays
       }
+  }
+
+  _cleanImgLink(link) {
+    if (link.includes('png')) return link.split('png')[0]
+    else if (link.includes('jpeg')) return link.split('jpeg')[0]
+    else if (link.includes('jpg')) return link.split('jpg')[0]
   }
 
   async _getImage(res) {
     const re = '<img[^>]+src="([^">]+)"'
-    let response = await fetch(res.data.url)
+    let response = await fetch(res.data.url, {timeout: 3 * 1000})
     let data = await response.text()
     let img = await data.match(re)
-    if (img && img[1].includes('http')) return img[1]
+    if (img && img[1] && img[1].includes('http') && !img[1].includes('logo')) return img[1]
+    else if (img && img[2] && img[2].includes('http') && !img[2].includes('logo')) return img[2]
+    else if (img && img[0] && img[0].includes('http') && !img[0].includes('logo')) return img[0]
   }
 
   async _getStories(list) {
-      this.setState({loadingMoreStories: !this.state.loadingMoreStories})
+      if (this._isMounted) {
+        this.setState({loadingMoreStories: !this.state.loadingMoreStories})
+      }
       let l = this.state.listNew || []
       let count = 0
       for (var item of list) {
@@ -124,7 +140,7 @@ export default class HomeScreen extends React.Component {
           }
           count += 1
           l.push(res.data)
-          if (list.length === count) {
+          if (list.length === count && this._isMounted) {
             this.setState({
               loadingMoreStories: !this.state.loadingMoreStories,
               listNew: l, 
@@ -132,7 +148,7 @@ export default class HomeScreen extends React.Component {
               listFilter: l,
               pageCount: this.state.pageCount + 1
             })
-          } else if (l.length > 3){
+          } else if (l.length > 3 && this._isMounted){
             this.setState({
               loadingMoreStories: true,
               listNew: l, 
@@ -149,7 +165,7 @@ export default class HomeScreen extends React.Component {
     if (item.kids) {
       this.props.navigation.navigate('Comments', {
         kids: item.kids,
-        title:  item.title,
+        title: item.title,
         score: item.score,
         by: item.by,
         url: item.url
@@ -158,34 +174,60 @@ export default class HomeScreen extends React.Component {
   }
 
   _handleMenuClick(queryStories) {
-    this.setState({ queryStories: queryStories }, () => {
-      this._getInitalStories()
-    })
+    if (this._isMounted) {
+      this.setState({ 
+        queryStories: queryStories,
+        listFilter: [],
+        listNew: []
+      }, () => {
+        this._getInitalStories()
+      })
+    }
   }
   
   async _onRefresh() {
-    this.setState({loading: true});
-    await this._getInitalStories().then(
-      this.setState({loading: false})
-    )
+    if (this._isMounted) {
+      this.setState({loading: true});
+      await this._getInitalStories().then(
+        this.setState({loading: false})
+      )
+    }
   }
 
   async _getInitalStories() {
     await this.props.navigation.setParams({ title: this.state.queryStories })
-    this.setState({ loading: true, listNew: [], listFilter: []})
+    if (this._isMounted) {
+      this.setState({ loading: true, listNew: [], listFilter: []})
+    }
     axios.get(URL_STORIES + this.state.queryStories + `stories.json`)
     .then(res => {
       let data = res.data;
       const arrays = this._breakChunks(data);
-      this.setState({ arrays })
+      if (this._isMounted) {
+        this.setState({ arrays })
+      }
       this._getStories(this.state.arrays[0])
     })
     .catch(error => {
       console.warn(error)
     });
   }
+  
+  componentWillUnmount() {
+    this.setState({
+      listFilter: [],
+      listNew: []
+    })
+    this._isMounted = false;
+  }
+
   componentDidMount() {
+    this._isMounted = true;
     this.props.navigation.setParams({ handleClick: this._handleMenuClick.bind(this), title: this.state.queryStories });
+    this.setState({
+      listFilter: [],
+      listNew: []
+    })
     this._getInitalStories() 
   }
 
@@ -216,16 +258,22 @@ export default class HomeScreen extends React.Component {
                 <View key={ item.id } style={styles.helpContainer}>
                   {
                     item.img &&
-                    <Image
-                      style={{ width: '100%', height: 150 }}
-                      source={{uri:item.img}}
-                    />
+                    <View style={{ marginBottom: 5 }}>
+                      <Image
+                        resizeMode='cover'
+                        onError={(e) => { this.props.source = { uri: 'https://example.domain.com/no-photo.png' }}}
+                        style={{ width: '100%', height: 200 }}
+                        source={{uri:item.img}}
+                      />
+                    </View>
                   }
                   <TouchableOpacity 
+                    delayPressIn={50}
                     onPress={() => this._handleComments(item)} 
                     style={styles.helpLink}
                     hitSlop={{top: 50, bottom: 50, left: 50, right: 50}}>
                     <TouchableOpacity 
+                      delayPressIn={50}
                       onPress={() => this.props.navigation.navigate('WebLinks', {url: item.url})}
                       style={[styles.helpLink, {flexDirection: 'row'}]}>
                       <Text style={styles.helpLinkText}>{item.title}  <Ionicons name="md-link" size={20} color="white" style={{paddingLeft: 5}} />
@@ -233,6 +281,7 @@ export default class HomeScreen extends React.Component {
                     </TouchableOpacity>
                     <View style={styles.infoContainer}>
                       <TouchableOpacity 
+                        delayPressIn={50}
                         onPress={() => this._handleComments(item)} 
                         style={styles.helpLink} 
                         hitSlop={{top: 50, bottom: 50, left: 50, right: 50}}>
