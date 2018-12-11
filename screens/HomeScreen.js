@@ -122,9 +122,12 @@ export default class HomeScreen extends React.Component {
 
   async _getStories(list) {
       if (this._isMounted) {
-        this.setState({loadingMoreStories: !this.state.loadingMoreStories})
+        this.setState({
+          loadingMoreStories: !this.state.loadingMoreStories,
+          loading: true
+        })
       }
-      let l = this.state.listNew || []
+      l = this.state.listNew || []
       let count = 0
       for (var item of list) {
         await axios.get(URL_ITEM + item + `.json`)
@@ -135,8 +138,8 @@ export default class HomeScreen extends React.Component {
               res.data.img = img
             })
             .catch((error) => {
-              console.error(error);
-            });
+              console.warn(error);
+            })
           }
           count += 1
           l.push(res.data)
@@ -177,8 +180,6 @@ export default class HomeScreen extends React.Component {
     if (this._isMounted) {
       this.setState({ 
         queryStories: queryStories,
-        listFilter: [],
-        listNew: []
       }, () => {
         this._getInitalStories()
       })
@@ -197,7 +198,7 @@ export default class HomeScreen extends React.Component {
   async _getInitalStories() {
     await this.props.navigation.setParams({ title: this.state.queryStories })
     if (this._isMounted) {
-      this.setState({ loading: true, listNew: [], listFilter: []})
+      this.setState({ loading: true, listNew: [], listFilter: [], arrays: []})
     }
     axios.get(URL_STORIES + this.state.queryStories + `stories.json`)
     .then(res => {
@@ -214,20 +215,12 @@ export default class HomeScreen extends React.Component {
   }
   
   componentWillUnmount() {
-    this.setState({
-      listFilter: [],
-      listNew: []
-    })
     this._isMounted = false;
   }
 
   componentDidMount() {
     this._isMounted = true;
     this.props.navigation.setParams({ handleClick: this._handleMenuClick.bind(this), title: this.state.queryStories });
-    this.setState({
-      listFilter: [],
-      listNew: []
-    })
     this._getInitalStories() 
   }
 
