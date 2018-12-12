@@ -120,8 +120,11 @@ export default class Comments extends React.Component {
           </View>
         }
         { !loading &&
-          <ScrollView 
-            style={styles.container} contentContainerStyle={styles.contentContainer}>
+          <ScrollView
+            showsVerticalScrollIndicator={true}
+            style={styles.container} 
+            contentContainerStyle={styles.contentContainer}
+          >
             <View style={styles.boxContent}>
             <View>
               <Text style={{color: 'white', fontSize: 14}}>{title}</Text>

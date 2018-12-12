@@ -25,10 +25,15 @@ import {
 
 import {Icon} from 'native-base';
 
-const PAGE_ITEMS = 20
+const PAGE_ITEMS = 10
 const URL_ITEM = 'https://hacker-news.firebaseio.com/v0/item/'
 const URL_STORIES = `https://hacker-news.firebaseio.com/v0/`
 
+
+const isCloseToBottom = ({layoutMeasurement, contentOffset, contentSize}) => {
+  return layoutMeasurement.height + contentOffset.y >=
+    contentSize.height
+};
 
 export default class HomeScreen extends React.Component {
   _isMounted = false;
@@ -43,6 +48,7 @@ export default class HomeScreen extends React.Component {
       arrays: [],
       loadingMoreStories: false,
       queryStories: 'best',
+      finishLoading: true,
     }, 
     this._breakChunks = this._breakChunks.bind(this)
     this._getInitalStories = this._getInitalStories.bind(this)
@@ -70,8 +76,16 @@ export default class HomeScreen extends React.Component {
       headerRight: 
       <View style={{paddingRight: 20}}>
         <Menu>
-            <MenuTrigger>
-              <Icon style={{color: '#fff'}} name="md-more"/>
+            <MenuTrigger
+              customStyles={{
+                triggerTouchable: {
+                  hitSlop: { top: 50, bottom: 50, left: 50, right: 50 }
+                }
+              }}>
+              <Icon 
+                style={{color: '#fff'}} 
+                name="md-more"
+              />
             </MenuTrigger>
             <MenuOptions style={{backgroundColor: '#222222'}}>
               <MenuOption style={{alignItems: 'center'}} onSelect={() => navigation.state.params.handleClick('new')}>
@@ -118,21 +132,25 @@ export default class HomeScreen extends React.Component {
     if (img && img[1] && img[1].includes('http') && !img[1].includes('logo')) return img[1]
     else if (img && img[2] && img[2].includes('http') && !img[2].includes('logo')) return img[2]
     else if (img && img[0] && img[0].includes('http') && !img[0].includes('logo')) return img[0]
+    else if (img && img[3] && img[3].includes('http') && !img[3].includes('logo')) return img[3]
+    else if (img && img[4] && img[4].includes('http') && !img[4].includes('logo')) return img[4]
   }
 
   async _getStories(list) {
+    if(this.state.finishLoading) {
       if (this._isMounted) {
         this.setState({
           loadingMoreStories: !this.state.loadingMoreStories,
-          loading: true
+          finishLoading: false,
         })
       }
+
       l = this.state.listNew || []
       let count = 0
       for (var item of list) {
         await axios.get(URL_ITEM + item + `.json`)
         .then(async res => {
-          if (res.data.url) {
+          if (res.data.url && !res.data.url.includes('pdf')) {
             await this._getImage(res)
             .then(img => {
               res.data.img = img
@@ -147,9 +165,9 @@ export default class HomeScreen extends React.Component {
             this.setState({
               loadingMoreStories: !this.state.loadingMoreStories,
               listNew: l, 
-              loading: false, 
               listFilter: l,
-              pageCount: this.state.pageCount + 1
+              pageCount: this.state.pageCount + 1,
+              finishLoading: true
             })
           } else if (l.length > 3 && this._isMounted){
             this.setState({
@@ -160,8 +178,8 @@ export default class HomeScreen extends React.Component {
             })
           }
         })
-
       }
+    }
   }
 
   _handleComments(item) {
@@ -189,9 +207,7 @@ export default class HomeScreen extends React.Component {
   async _onRefresh() {
     if (this._isMounted) {
       this.setState({loading: true});
-      await this._getInitalStories().then(
-        this.setState({loading: false})
-      )
+      await this._getInitalStories()
     }
   }
 
@@ -235,7 +251,14 @@ export default class HomeScreen extends React.Component {
           </View>
         }
         { !loading &&
-          <ScrollView 
+          <ScrollView
+            onScroll={({nativeEvent}) => {
+              if (isCloseToBottom(nativeEvent)) {
+                this._getStories(arrays[pageCount])
+              }
+            }}
+            scrollEventThrottle={400}
+            showsVerticalScrollIndicator={true}
             refreshControl={
               <RefreshControl
                 refreshing={this.state.loading}
@@ -294,13 +317,13 @@ export default class HomeScreen extends React.Component {
                 loadingMoreStories && 
                 <ActivityIndicator size="large" color="#ff7043" />
               }
-              {
+              {/* {
                 !loadingMoreStories && 
                 <Button
                 color='#ff7043'
                 title= 'More'
                 onPress={() => this._getStories(arrays[pageCount])} />  
-              }
+              } */}
               </View>
           </ScrollView>
         }
