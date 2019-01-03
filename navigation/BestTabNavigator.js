@@ -10,7 +10,7 @@ import LinksScreen from '../screens/LinksScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 const HomeStack = createStackNavigator({
-  Home: HomeScreen,
+  Best: HomeScreen,
   Comments: Comments,
   WebLinks: WebLinks,
 });

@@ -47,12 +47,10 @@ export default class HomeScreen extends React.Component {
       pageCount: 0,
       arrays: [],
       loadingMoreStories: false,
-      queryStories: 'best',
       finishLoading: true,
     }, 
     this._breakChunks = this._breakChunks.bind(this)
     this._getInitalStories = this._getInitalStories.bind(this)
-    this._handleMenuClick = this._handleMenuClick.bind(this)
     this._onRefresh = this._onRefresh.bind(this)
   }
   
@@ -67,7 +65,7 @@ export default class HomeScreen extends React.Component {
       headerStyle: {
         backgroundColor: '#ff7043',
       },
-      title: navigation.state.params ? navigation.state.params.title.charAt(0).toUpperCase() + navigation.state.params.title.slice(1) : 'Best',
+      title: navigation.state.routeName,
       headerLeft: 
         <View style={{paddingLeft:16}}>
           <Icon style={{color: '#fff'}} onPress={() => navigation.toggleDrawer()} name="md-menu"/>
@@ -147,6 +145,9 @@ export default class HomeScreen extends React.Component {
 
       l = this.state.listNew || []
       let count = 0
+      if(!list){
+        list = this.state.arrays[0]
+      }
       for (var item of list) {
         await axios.get(URL_ITEM + item + `.json`)
         .then(async res => {
@@ -194,40 +195,38 @@ export default class HomeScreen extends React.Component {
     }
   }
 
-  _handleMenuClick(queryStories) {
-    if (this._isMounted) {
-      this.setState({ 
-        queryStories: queryStories,
-      }, () => {
-        this._getInitalStories()
-      })
-    }
-  }
-  
   async _onRefresh() {
     if (this._isMounted) {
-      this.setState({loading: true});
-      await this._getInitalStories()
+      this.setState({
+        loading: true,
+        listNew: null,
+        listFilter: [],
+        pageCount: 0,
+        arrays: [],
+        loadingMoreStories: false,
+        finishLoading: true,
+      },
+      this._getInitalStories
+      )
     }
   }
 
   async _getInitalStories() {
-    await this.props.navigation.setParams({ title: this.state.queryStories })
     if (this._isMounted) {
-      this.setState({ loading: true, listNew: [], listFilter: [], arrays: []})
+      axios.get(URL_STORIES + this.props.navigation.state.routeName.toLowerCase() + `stories.json`)
+      .then(res => {
+        let data = res.data;
+        const arrays = this._breakChunks(data);
+        if (this._isMounted) {
+          this.setState({ arrays },
+            this._getStories
+          )
+        }
+      }) 
+      .catch(error => { 
+        console.warn(error)
+      });
     }
-    axios.get(URL_STORIES + this.state.queryStories + `stories.json`)
-    .then(res => {
-      let data = res.data;
-      const arrays = this._breakChunks(data);
-      if (this._isMounted) {
-        this.setState({ arrays })
-      }
-      this._getStories(this.state.arrays[0])
-    })
-    .catch(error => {
-      console.warn(error)
-    });
   }
   
   componentWillUnmount() {
@@ -235,9 +234,11 @@ export default class HomeScreen extends React.Component {
   }
 
   componentDidMount() {
+    this.subs = [
+      this.props.navigation.addListener('didFocus', (payload) => this._onRefresh()),
+    ]; 
     this._isMounted = true;
-    this.props.navigation.setParams({ handleClick: this._handleMenuClick.bind(this), title: this.state.queryStories });
-    this._getInitalStories() 
+    this._onRefresh() 
   }
 
   render() {
@@ -270,8 +271,8 @@ export default class HomeScreen extends React.Component {
             onRefresh={this._onRefresh}>
             <View style={styles.welcomeContainer}> 
             {
-              listFilter.map((item) => (
-                <View key={ item.id } style={styles.helpContainer}>
+              listFilter.map((item, index) => (
+                <View key={ index } style={styles.helpContainer}>
                   {
                     item.img &&
                     <View style={{ marginBottom: 5 }}>

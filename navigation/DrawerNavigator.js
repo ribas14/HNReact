@@ -2,7 +2,9 @@ import React from 'react'
 import { createDrawerNavigator, createAppContainer } from 'react-navigation';
 import { DrawerItems, SafeAreaView } from 'react-navigation';
 import { StyleSheet, ScrollView, View, Image } from 'react-native';
-import MainTabNavigator from './MainTabNavigator';
+import BestTabNavigator from './BestTabNavigator';
+import TopTabNavigator from './TopTabNavigator';
+import NewTabNavigator from './NewTabNavigator';
 
 const CustomDrawerContentComponent = (props) => (
   <ScrollView>
@@ -27,7 +29,9 @@ const CustomDrawerContentComponent = (props) => (
 );
 
 const DrawerNavigator = createDrawerNavigator({
-  News: {screen: MainTabNavigator},
+  Best: {screen: BestTabNavigator},
+  Top: {screen: TopTabNavigator},
+  New: {screen: NewTabNavigator},
 }, {
   contentComponent: CustomDrawerContentComponent, 
   headerMode: 'screen',
