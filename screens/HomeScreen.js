@@ -14,16 +14,16 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
-  Button,
   ScrollView,
   StyleSheet,
   Text,
+  Button,
   Image,
   TouchableOpacity,
   View,
 } from 'react-native';  
 
-import {Icon} from 'native-base';
+import { Icon } from 'native-base';
 
 const PAGE_ITEMS = 10
 const URL_ITEM = 'https://hacker-news.firebaseio.com/v0/item/'
@@ -86,16 +86,12 @@ export default class HomeScreen extends React.Component {
               />
             </MenuTrigger>
             <MenuOptions style={{backgroundColor: '#222222'}}>
-              <MenuOption style={{alignItems: 'center'}} onSelect={() => navigation.state.params.handleClick('new')}>
-                <Text style={styles.textMenu} >New Stories</Text>
+              <MenuOption style={{alignItems: 'center'}} onSelect={() => console.log()}>
+                <Text style={styles.textMenu} >Light Theme</Text>
               </MenuOption>
-              <MenuOption style={{alignItems: 'center'}} onSelect={() => navigation.state.params.handleClick('best')}>
-                <Text style={styles.textMenu} >Best Stories</Text>
+              <MenuOption style={{alignItems: 'center'}} onSelect={() => console.log()}>
+                <Text style={styles.textMenu} >Dark Theme</Text>
               </MenuOption>
-              <MenuOption style={{alignItems: 'center'}} onSelect={() => navigation.state.params.handleClick('top')}>
-                <Text style={styles.textMenu} >Top Stories</Text>
-              </MenuOption>
-
             </MenuOptions>
           </Menu>
       </View>
@@ -116,10 +112,26 @@ export default class HomeScreen extends React.Component {
       }
   }
 
-  _cleanImgLink(link) {
-    if (link.includes('png')) return link.split('png')[0]
-    else if (link.includes('jpeg')) return link.split('jpeg')[0]
-    else if (link.includes('jpg')) return link.split('jpg')[0]
+
+  async _checkImage(img) {
+    for (i = 0; 10 > i;) {
+      if (
+          img &&
+          img[i] && 
+          img[i].includes('http') &&
+          !img[i].includes('logo') &&
+          !img[i].includes('svg')
+         ) {
+          Image.getSize(img[1], (width, height) => {
+            if (height > 50) {
+              return img[1]
+            } else {
+              return null
+            }
+          })
+          i++           
+         }
+    }
   }
 
   async _getImage(res) {
@@ -127,11 +139,7 @@ export default class HomeScreen extends React.Component {
     let response = await fetch(res.data.url, {timeout: 3 * 1000})
     let data = await response.text()
     let img = await data.match(re)
-    if (img && img[1] && img[1].includes('http') && !img[1].includes('logo')) return img[1]
-    else if (img && img[2] && img[2].includes('http') && !img[2].includes('logo')) return img[2]
-    else if (img && img[0] && img[0].includes('http') && !img[0].includes('logo')) return img[0]
-    else if (img && img[3] && img[3].includes('http') && !img[3].includes('logo')) return img[3]
-    else if (img && img[4] && img[4].includes('http') && !img[4].includes('logo')) return img[4]
+    return await this._checkImage(img)
   }
 
   async _getStories(list) {
@@ -157,7 +165,7 @@ export default class HomeScreen extends React.Component {
               res.data.img = img
             })
             .catch((error) => {
-              console.warn(error);
+              console.log(error);
             })
           }
           count += 1
@@ -190,7 +198,8 @@ export default class HomeScreen extends React.Component {
         title: item.title,
         score: item.score,
         by: item.by,
-        url: item.url
+        url: item.url,
+        image: item.img ? item.img : null
       })
     }
   }
@@ -276,12 +285,17 @@ export default class HomeScreen extends React.Component {
                   {
                     item.img &&
                     <View style={{ marginBottom: 5 }}>
-                      <Image
-                        resizeMode='cover'
-                        onError={(e) => { this.props.source = { uri: 'https://example.domain.com/no-photo.png' }}}
-                        style={{ width: '100%', height: 200 }}
-                        source={{uri:item.img}}
-                      />
+                      <TouchableOpacity 
+                        delayPressIn={50}
+                        onPress={() => this.props.navigation.navigate('WebLinks', {url: item.url})}
+                        style={[styles.helpLink, {flexDirection: 'row'}]}>
+                        <Image
+                          resizeMode='cover'
+                          onError={(e) => { this.props.source = { uri: 'https://example.domain.com/no-photo.png' }}}
+                          style={{ width: '100%', height: 200 }}
+                          source={{uri:item.img}}
+                        />
+                      </TouchableOpacity>
                     </View>
                   }
                   <TouchableOpacity 
@@ -318,13 +332,13 @@ export default class HomeScreen extends React.Component {
                 loadingMoreStories && 
                 <ActivityIndicator size="large" color="#ff7043" />
               }
-              {/* {
+              {
                 !loadingMoreStories && 
                 <Button
                 color='#ff7043'
                 title= 'More'
                 onPress={() => this._getStories(arrays[pageCount])} />  
-              } */}
+              }
               </View>
           </ScrollView>
         }

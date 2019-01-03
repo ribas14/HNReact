@@ -3,12 +3,14 @@ import axios from 'axios'
 import { Ionicons } from '@expo/vector-icons';
 import CommentCard from '../components/CommentCard'
 import {
+  RefreshControl,
   ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
 
 const PAGE_ITEMS = 10
@@ -25,6 +27,7 @@ export default class Comments extends React.Component {
     } 
     this._handleKids = this._handleKids.bind(this)
     this._breakChunks = this._breakChunks.bind(this)
+    this._getComments = this._getComments.bind(this)
 
   }
 
@@ -88,12 +91,16 @@ export default class Comments extends React.Component {
     this._isMounted = false;
   }
 
-  async componentDidMount() {
-    this._isMounted = true;
+
+  async _getComments(){
     if (this._isMounted) {
-      this.setState({ loading: true })
+      await this.setState({ 
+        loading: true,
+        listComments: []
+       })
     }
     if (this.props.navigation.getParam('kids', null)) {
+      kids = []
       kids = this._breakChunks([...this.props.navigation.getParam('kids', null)])
       let listComments = await this._handleKids(kids[0], 2, true)
       if (this._isMounted) {
@@ -104,6 +111,11 @@ export default class Comments extends React.Component {
     }
   }
 
+  componentDidMount() {
+    this._isMounted = true;
+    this._getComments();
+  }
+
   render() {
     const {loading, listComments} = this.state
     const { navigation } = this.props
@@ -111,6 +123,7 @@ export default class Comments extends React.Component {
     const score = navigation.getParam('score', 'error')
     const title = navigation.getParam('title', 'error')
     const url = navigation.getParam('url', 'error')
+    const image = navigation.getParam('image', 'error')
 
     return (
       <View style={styles.container}>
@@ -121,11 +134,27 @@ export default class Comments extends React.Component {
         }
         { !loading &&
           <ScrollView
+            refreshControl={
+              <RefreshControl
+                refreshing={this.state.loading}
+                onRefresh={this._getComments}
+              />
+            }
             showsVerticalScrollIndicator={true}
             style={styles.container} 
             contentContainerStyle={styles.contentContainer}
           >
             <View style={styles.boxContent}>
+            {
+              image && 
+              <Image
+                resizeMode='cover'
+                onError={(e) => { this.props.source = { uri: 'https://example.domain.com/no-photo.png' }}}
+                style={{ width: '100%', height: 200 }}
+                source={{uri:image}}
+              />
+            }
+
             <View>
               <Text style={{color: 'white', fontSize: 14}}>{title}</Text>
             </View>
