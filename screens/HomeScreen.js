@@ -60,6 +60,7 @@ class HomeScreen extends React.Component {
     this._breakChunks = this._breakChunks.bind(this)
     this._getInitalStories = this._getInitalStories.bind(this)
     this._onRefresh = this._onRefresh.bind(this)
+    this._getImages = this._getImages.bind(this)
   }
   
   static navigationOptions = ({ navigation }) => {
@@ -131,19 +132,40 @@ class HomeScreen extends React.Component {
           !img[i].includes('svg')
          ) {
           return img[1]
-          i++           
          } else {
           return null
         }
+      i++           
     }
   }
 
-  async _getImage(res) {
+  async _getImages() {
     const re = '<img[^>]+src="([^">]+)"'
-    let response = await fetch(res.data.url, {timeout: 3 * 1000})
-    let data = await response.text()
-    let img = await data.match(re)
-    return this._checkImage(img)
+    var listCopy = this.state.listNew
+    var i = 0
+    for (var item of this.state.listNew) {
+      if (item.url && !item.url.includes('pdf')  && this._isMounted) {
+
+        await axios.get(item.url)
+        .then(async res => {
+          let response = res.data;
+          let img = await response.match(re)
+          listCopy[i].img = this._checkImage(img)
+          if (listCopy[i].img) {
+            Image.getSize(listCopy[i].img,(height, width)=>{
+              if(height > 80)
+                this.setState({
+                  listNew: listCopy
+                })
+             })
+          }
+        }) 
+        .catch(error => { 
+          // console.warn(error)
+        });
+      }
+      i++
+    }
   }
 
   async _getStories(list) {
@@ -161,17 +183,8 @@ class HomeScreen extends React.Component {
         list = this.state.arrays[0]
       }
       for (var item of list) {
-        axios.get(URL_ITEM + item + `.json`)
+        await axios.get(URL_ITEM + item + `.json`)
         .then(async res => {
-          if (res.data.url && !res.data.url.includes('pdf')) {
-            this._getImage(res)
-            .then(img => {
-              res.data.img = img
-            })
-            .catch((error) => {
-              console.log(error);
-            })
-          }
           count += 1
           l.push(res.data)
           if (list.length === count && this._isMounted) {
@@ -182,13 +195,13 @@ class HomeScreen extends React.Component {
               pageCount: this.state.pageCount + 1,
               finishLoading: true
             })
-          } else if (l.length > 3 && this._isMounted){
+          } else if (l.length == 6 && this._isMounted){
             this.setState({
               loadingMoreStories: true,
               listNew: l, 
               loading: false, 
               listFilter: l,
-            })
+            }, this._getImages)
           }
         })
       }
