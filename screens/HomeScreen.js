@@ -161,10 +161,10 @@ class HomeScreen extends React.Component {
         list = this.state.arrays[0]
       }
       for (var item of list) {
-        await axios.get(URL_ITEM + item + `.json`)
+        axios.get(URL_ITEM + item + `.json`)
         .then(async res => {
           if (res.data.url && !res.data.url.includes('pdf')) {
-            await this._getImage(res)
+            this._getImage(res)
             .then(img => {
               res.data.img = img
             })
