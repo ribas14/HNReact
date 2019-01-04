@@ -5,7 +5,7 @@ import { Icon } from 'native-base';
 
 import BestTabNavigator from './BestTabNavigator';
 import TopTabNavigator from './TopTabNavigator';
-import NewTabNavigator from './NewTabNavigator';
+import StoriesTabNavigator from './StoriesTabNavigator';
 import CustomDrawerContentComponent from './CustomDrawerContentComponent'
 
 // tamanho do statusbar grande demais
@@ -14,37 +14,49 @@ import CustomDrawerContentComponent from './CustomDrawerContentComponent'
 // }
 
 const DrawerNavigator = createDrawerNavigator({
-  Best: {
-    screen: BestTabNavigator,
+  Stories: {
+    screen: StoriesTabNavigator,
     navigationOptions: () =>  {
       return {
         drawerIcon: () => (
           <Icon 
-            name="md-trophy"
+            name="md-list"
           />
         )
       }
     }
   },
-  Top: {
+  Ask: {
     screen: TopTabNavigator,
     navigationOptions: () =>  {
       return {
         drawerIcon: () => (
           <Icon 
-            name="md-arrow-round-up"
+            name="md-help"
           />
         )
       }
     }
   },
-  New: {
-    screen: NewTabNavigator,
+  Jobs: {
+    screen: StoriesTabNavigator,
     navigationOptions: () =>  {
       return {
         drawerIcon: () => (
           <Icon 
-            name="md-refresh"
+            name="md-code-working"
+          />
+        )
+      }
+    }
+  },
+  Settings: {
+    screen: StoriesTabNavigator,
+    navigationOptions: () =>  {
+      return {
+        drawerIcon: () => (
+          <Icon 
+            name="md-settings"
           />
         )
       }
@@ -53,30 +65,7 @@ const DrawerNavigator = createDrawerNavigator({
 }, {
   contentComponent: CustomDrawerContentComponent, 
   activeTintColor: '#890409',
-  initialRouteName: 'Best',
+  initialRouteName: 'Stories',
 });
-
-
-// const DrawerNavigator = createDrawerNavigator({
-//   Best: {screen: BestTabNavigator},
-//   Top: {screen: TopTabNavigator},
-//   New: {screen: NewTabNavigator},
-// }, {
-//   contentComponent: CustomDrawerContentComponent, 
-//   headerMode: 'screen',
-//   activeTintColor: '#e91e63',
-// });
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//   },
-//   containerImage: {
-//     flex: 1,
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-
-// });
 
 export default createAppContainer(DrawerNavigator);

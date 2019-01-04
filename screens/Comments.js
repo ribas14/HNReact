@@ -12,11 +12,13 @@ import {
   View,
   Image,
 } from 'react-native';
+import history from '../store/historyStore'
+import { view } from 'react-easy-state'
 
 const PAGE_ITEMS = 10
 const URL_COMMENTS = `https://hacker-news.firebaseio.com/v0/item/`
 
-export default class Comments extends React.Component {
+class Comments extends React.Component {
   _isMounted = false;
 
   constructor(props, context) {
@@ -43,6 +45,7 @@ export default class Comments extends React.Component {
         backgroundColor: '#ff7043',
       },
       title: navigation.getParam('title', 'Comments'),
+      tabBarVisible: false
     };
   };
 
@@ -113,6 +116,8 @@ export default class Comments extends React.Component {
 
   componentDidMount() {
     this._isMounted = true;
+    history.addHistory(this.props.navigation.state.routeName)
+
     this._getComments();
   }
 
@@ -193,6 +198,8 @@ export default class Comments extends React.Component {
     );
   }
 }
+
+export default view(Comments);
 
 const styles = StyleSheet.create({
   container: {

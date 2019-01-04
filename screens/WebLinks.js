@@ -2,8 +2,16 @@ import React from 'react'
 import {
   WebView,
 } from 'react-native';
+import history from '../store/historyStore'
+import { view } from 'react-easy-state'
 
-export default class WebLinks extends React.Component {
+class WebLinks extends React.Component {
+  
+  componentDidMount() {
+    history.addHistory(this.props.navigation.state.routeName)
+  }
+
+
   static navigationOptions = ({ navigation }) => {
     return {
       headerTitleStyle: { 
@@ -30,3 +38,4 @@ export default class WebLinks extends React.Component {
     );
   }
 }
+export default view(WebLinks)

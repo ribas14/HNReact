@@ -2,6 +2,8 @@ import React from 'react'
 import axios from 'axios'
 import fetch from 'react-native-fetch-polyfill'
 import moment from 'moment';
+import { view } from 'react-easy-state'
+
 import { Ionicons } from '@expo/vector-icons';
 import {
   Menu,
@@ -9,6 +11,8 @@ import {
   MenuOption,
   MenuTrigger,
 } from 'react-native-popup-menu';
+import settings from '../store/themeStore'
+import history from '../store/historyStore'
 
 import {
   RefreshControl,
@@ -35,7 +39,11 @@ const isCloseToBottom = ({layoutMeasurement, contentOffset, contentSize}) => {
     contentSize.height
 };
 
-export default class HomeScreen extends React.Component {
+const changeThemeColor = (color) => {
+  settings.changeThemeColor(color)
+}
+
+class HomeScreen extends React.Component {
   _isMounted = false;
 
   constructor(props, context) {
@@ -86,10 +94,10 @@ export default class HomeScreen extends React.Component {
               />
             </MenuTrigger>
             <MenuOptions style={{backgroundColor: '#222222'}}>
-              <MenuOption style={{alignItems: 'center'}} onSelect={() => console.log()}>
+              <MenuOption style={{alignItems: 'center'}} onSelect={() => changeThemeColor('#fff')}>
                 <Text style={styles.textMenu} >Light Theme</Text>
               </MenuOption>
-              <MenuOption style={{alignItems: 'center'}} onSelect={() => console.log()}>
+              <MenuOption style={{alignItems: 'center'}} onSelect={() => changeThemeColor('#222222')}>
                 <Text style={styles.textMenu} >Dark Theme</Text>
               </MenuOption>
             </MenuOptions>
@@ -113,7 +121,7 @@ export default class HomeScreen extends React.Component {
   }
 
 
-  async _checkImage(img) {
+  _checkImage(img) {
     for (i = 0; 10 > i;) {
       if (
           img &&
@@ -122,15 +130,11 @@ export default class HomeScreen extends React.Component {
           !img[i].includes('logo') &&
           !img[i].includes('svg')
          ) {
-          Image.getSize(img[1], (width, height) => {
-            if (height > 50) {
-              return img[1]
-            } else {
-              return null
-            }
-          })
+          return img[1]
           i++           
-         }
+         } else {
+          return null
+        }
     }
   }
 
@@ -139,7 +143,7 @@ export default class HomeScreen extends React.Component {
     let response = await fetch(res.data.url, {timeout: 3 * 1000})
     let data = await response.text()
     let img = await data.match(re)
-    return await this._checkImage(img)
+    return this._checkImage(img)
   }
 
   async _getStories(list) {
@@ -243,9 +247,14 @@ export default class HomeScreen extends React.Component {
   }
 
   componentDidMount() {
-    this.subs = [
-      this.props.navigation.addListener('didFocus', (payload) => this._onRefresh()),
-    ]; 
+    this.props.navigation.addListener('didFocus', (payload) => {
+      if((history.getLastPage == 'Best') || (history.getLastPage == 'New') || (history.getLastPage == 'Top')) {
+        this._onRefresh();
+        history.addHistory(this.props.navigation.state.routeName)
+      } else {
+        history.addHistory(this.props.navigation.state.routeName)
+      }
+    })
     this._isMounted = true;
     this._onRefresh() 
   }
@@ -254,7 +263,7 @@ export default class HomeScreen extends React.Component {
     const { listFilter, loading, pageCount, arrays, loadingMoreStories } = this.state
 
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, {backgroundColor: settings.getThemeColor}]}>
         { loading &&
           <View style={[styles.container, {justifyContent: 'center'} ]}>
             <ActivityIndicator size="large" color="#ff7043" />
@@ -347,10 +356,11 @@ export default class HomeScreen extends React.Component {
   }
 }
 
+export default view(HomeScreen);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#222222',
   },
   developmentModeText: {
     marginBottom: 20,

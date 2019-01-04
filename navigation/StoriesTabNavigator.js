@@ -6,16 +6,14 @@ import TabBarIcon from '../components/TabBarIcon';
 import HomeScreen from '../screens/HomeScreen';
 import Comments from '../screens/Comments';
 import WebLinks from '../screens/WebLinks';
-import LinksScreen from '../screens/LinksScreen';
-import SettingsScreen from '../screens/SettingsScreen';
 
-const HomeStack = createStackNavigator({
+const NewStack = createStackNavigator({
   New: HomeScreen,
   Comments: Comments,
   WebLinks: WebLinks,
 });
 
-HomeStack.navigationOptions = {
+NewStack.navigationOptions = {
   tabBarOptions: {
     inactiveTintColor: '#ececec',
     labelStyle: {
@@ -31,18 +29,20 @@ HomeStack.navigationOptions = {
       focused={focused}
       name={
         Platform.OS === 'ios'
-          ? 'ios-list'
-          : 'md-list'
+          ? 'ios-refresh'
+          : 'md-refresh'
       }
     />
   ),
 };
 
-const LinksStack = createStackNavigator({
-  Links: LinksScreen,
+const BestStack = createStackNavigator({
+  Best: HomeScreen,
+  Comments: { screen: Comments},
+  WebLinks: WebLinks,
 });
 
-LinksStack.navigationOptions = {
+BestStack.navigationOptions = {
   tabBarOptions: {
     inactiveTintColor: '#ececec',
     labelStyle: {
@@ -52,20 +52,26 @@ LinksStack.navigationOptions = {
       backgroundColor: '#3c3c3c',
     },
   },
-  tabBarLabel: 'Ask',
+  tabBarLabel: 'Best',
   tabBarIcon: ({ focused }) => (
     <TabBarIcon
       focused={focused}
-      name={Platform.OS === 'ios' ? 'ios-help' : 'md-help'}
+      name={
+        Platform.OS === 'ios'
+          ? 'ios-trophy'
+          : 'md-trophy'
+      }
     />
   ),
 };
 
-const SettingsStack = createStackNavigator({
-  Settings: SettingsScreen,
+const TopStack = createStackNavigator({
+  Top: HomeScreen,
+  Comments: Comments,
+  WebLinks: WebLinks,
 });
 
-SettingsStack.navigationOptions = {
+TopStack.navigationOptions = {
   tabBarOptions: {
     inactiveTintColor: '#ececec',
     labelStyle: {
@@ -75,13 +81,24 @@ SettingsStack.navigationOptions = {
       backgroundColor: '#3c3c3c',
     },
   },
-  tabBarLabel: 'Jobs',
+  tabBarLabel: 'Top',
   tabBarIcon: ({ focused }) => (
     <TabBarIcon
       focused={focused}
-      name={Platform.OS === 'ios' ? 'ios-code-working' : 'md-code-working'}
+      name={
+        Platform.OS === 'ios'
+          ? 'ios-arrow-round-up'
+          : 'md-arrow-round-up'
+      }
     />
   ),
 };
 
-export default HomeStack;
+
+export default createBottomTabNavigator({
+  BestStack,
+  NewStack,
+  TopStack,
+}, {
+  initialRouteName: 'BestStack',
+});
