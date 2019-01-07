@@ -3,6 +3,7 @@
 To run in development mode:
 
 npm i 
+
 npm start
 
 *Using expo, so you need to follow the steps
